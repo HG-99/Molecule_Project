@@ -1,0 +1,18 @@
+services:
+  mol-encoder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mol-encoder-dev:latest
+    container_name: mol-encoder-dev
+    working_dir: /ws_GNN
+    volumes:
+      - ./:/ws_GNN
+    gpus: all
+    ipc: host
+    stdin_open: true
+    tty: true
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    command: bash
