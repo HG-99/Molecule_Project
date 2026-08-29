@@ -164,16 +164,14 @@ python src/smiles_to_graph.py --smiles 'C[C@H](O)C(=O)O'
 
 ## 7. 다음 구현 단계
 
-이 graph representation이 이해되면 다음 순서가 좋습니다.
-
 ```text
-Step 1  SMILES -> Graph tensor          <- 현재
+Step 1  SMILES -> Graph tensor
 Step 2  categorical feature embedding
 Step 3  직접 만든 MessagePassing layer
 Step 4  GINE baseline
 Step 5  graph pooling -> molecule vector
 Step 6  ESOL/QM9 prediction
-Step 7  local/global/hierarchical encoder 연구
+Step 7  local/global/hierarchical encoder
 ```
 
 중요한 점은 현재 `x`의 숫자를 그대로 continuous feature처럼 Linear에 넣기보다는, 다음 단계에서는 `atomic number`, `hybridization`, `chirality`, `bond type` 같은 categorical column을 각각 Embedding한 뒤 합치는 방식으로 바꾸는 것입니다.
