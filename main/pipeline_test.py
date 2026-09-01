@@ -307,17 +307,6 @@ def main() -> None:
             H_atom[atom_idx]
         )
 
-        print(
-            "\nfirst 8 dimensions:"
-        )
-
-        print(
-            H_atom[
-                atom_idx,
-                :8
-            ]
-        )
-
 
     # ========================================================
     # Edge representation examples
@@ -391,17 +380,6 @@ def main() -> None:
             print(
                 H_edge[
                     edge_idx
-                ]
-            )
-
-            print(
-                "\nfirst 8 dimensions:"
-            )
-
-            print(
-                H_edge[
-                    edge_idx,
-                    :8
                 ]
             )
 
