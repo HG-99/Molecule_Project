@@ -38,6 +38,10 @@ from src.feature_encoder import (
     BondFeatureEncoder,
 )
 
+from src.mpnn import (
+    SimpleMPNN,
+)
+
 
 # ============================================================
 # Output utility
@@ -82,8 +86,8 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Test molecular preprocessing and "
-            "feature encoding pipeline."
+            "Test molecular preprocessing, feature encoding, "
+            "and MPNN pipeline."
         )
     )
 
@@ -143,6 +147,30 @@ def main() -> None:
         help=(
             "Directed edge index/indices to inspect. "
             "Example: --edge-index 0 2 4"
+        ),
+    )
+
+    # --------------------------------------------------------
+    # MPNN configuration
+    # --------------------------------------------------------
+
+    parser.add_argument(
+        "--mpnn-layers",
+        type=int,
+        default=3,
+        help=(
+            "Number of MPNN layers. "
+            "Default: 3"
+        ),
+    )
+
+    parser.add_argument(
+        "--mpnn-dropout",
+        type=float,
+        default=0.0,
+        help=(
+            "Dropout used inside MPNN layers. "
+            "Default: 0.0"
         ),
     )
 
@@ -231,7 +259,7 @@ def main() -> None:
 
 
     # ========================================================
-    # Requested indices
+    # Available indices
     # ========================================================
 
     print(
@@ -385,7 +413,154 @@ def main() -> None:
 
 
     # ========================================================
-    # 3. Pipeline sanity check
+    # 3. Message Passing
+    # ========================================================
+
+    mpnn = SimpleMPNN(
+        embed_dim=embed_dim,
+        num_layers=args.mpnn_layers,
+        dropout=args.mpnn_dropout,
+    )
+
+    H_atom_updated, layer_outputs = mpnn(
+        H_atom,
+        data.edge_index,
+        H_edge,
+        return_all_layers=True,
+    )
+
+
+    print_separator(
+        "3. MESSAGE PASSING"
+    )
+
+
+    # ========================================================
+    # MPNN input
+    # ========================================================
+
+    print(
+        "\n=== MPNN input ==="
+    )
+
+    print(
+        "H_atom shape:",
+        tuple(H_atom.shape),
+    )
+
+    print(
+        "edge_index shape:",
+        tuple(data.edge_index.shape),
+    )
+
+    print(
+        "H_edge shape:",
+        tuple(H_edge.shape),
+    )
+
+
+    # ========================================================
+    # MPNN configuration
+    # ========================================================
+
+    print(
+        "\n=== MPNN configuration ==="
+    )
+
+    print(
+        "num_layers:",
+        args.mpnn_layers,
+    )
+
+    print(
+        "dropout:",
+        args.mpnn_dropout,
+    )
+
+
+    # ========================================================
+    # MPNN layer outputs
+    # ========================================================
+
+    for layer_idx, H_layer in enumerate(
+        layer_outputs,
+        start=1,
+    ):
+
+        print(
+            f"\n=== MPNN Layer {layer_idx}: "
+            f"updated atom feature matrix ==="
+        )
+
+        print(
+            H_layer
+        )
+
+        print(
+            "shape:",
+            tuple(H_layer.shape),
+        )
+
+
+    # ========================================================
+    # Final updated atom feature matrix
+    # ========================================================
+
+    print(
+        "\n=== H_atom_updated: "
+        "final updated atom feature matrix ==="
+    )
+
+    print(
+        H_atom_updated
+    )
+
+    print(
+        "shape:",
+        tuple(H_atom_updated.shape),
+    )
+
+
+    # ========================================================
+    # Selected atom MPNN trace
+    # ========================================================
+
+    for atom_idx in args.atom_index:
+
+        atom = mol.GetAtomWithIdx(
+            atom_idx
+        )
+
+        print(
+            f"\n=== Atom {atom_idx} "
+            f"({atom.GetSymbol()}): "
+            f"MPNN representation trace ==="
+        )
+
+        print(
+            "before MPNN:"
+        )
+
+        print(
+            H_atom[atom_idx]
+        )
+
+        for layer_idx, H_layer in enumerate(
+            layer_outputs,
+            start=1,
+        ):
+
+            print(
+                f"\nafter layer {layer_idx}:"
+            )
+
+            print(
+                H_layer[atom_idx]
+            )
+
+
+    # ========================================================
+    # 4. Pipeline sanity check
     # ========================================================
 
     assert H_atom.shape == (
@@ -404,9 +579,20 @@ def main() -> None:
         H_edge.shape[0]
     )
 
+    assert H_atom_updated.shape == (
+        data.x.shape[0],
+        embed_dim,
+    )
+
+    assert (
+        len(layer_outputs)
+        ==
+        args.mpnn_layers
+    )
+
 
     print_separator(
-        "3. PIPELINE CHECK"
+        "4. PIPELINE CHECK"
     )
 
     print(
@@ -424,49 +610,34 @@ def main() -> None:
         "edge_index columns == H_edge rows"
     )
 
+    print(
+        "[PASS] "
+        "(H_atom, edge_index, H_edge) "
+        "-> MPNN -> H_atom_updated"
+    )
+
+    print(
+        "[PASS] "
+        f"MPNN layer count == {args.mpnn_layers}"
+    )
+
 
     # ========================================================
-    # 4. Next MPNN interface
+    # 5. Next Readout / Pooling interface
     # ========================================================
 
     print_separator(
-        "4. NEXT STEP: MPNN INPUT"
+        "5. NEXT STEP: READOUT / POOLING INPUT"
     )
 
 
     print(
-        "\n=== H_atom ==="
-    )
-
-    print(
-        "shape:",
-        tuple(H_atom.shape),
-    )
-
-
-    print(
-        "\n=== edge_index ==="
-    )
-
-    print(
-        data.edge_index
+        "\n=== H_atom_updated ==="
     )
 
     print(
         "shape:",
-        tuple(
-            data.edge_index.shape
-        ),
-    )
-
-
-    print(
-        "\n=== H_edge ==="
-    )
-
-    print(
-        "shape:",
-        tuple(H_edge.shape),
+        tuple(H_atom_updated.shape),
     )
 
 
@@ -475,9 +646,9 @@ def main() -> None:
     )
 
     print(
-        "(H_atom, edge_index, H_edge)"
-        " -> MPNN"
-        " -> Updated H_atom"
+        "H_atom_updated"
+        " -> Readout / Pooling"
+        " -> Molecule Latent"
     )
 
 
