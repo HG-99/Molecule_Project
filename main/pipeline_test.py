@@ -42,6 +42,10 @@ from src.mpnn import (
     SimpleMPNN,
 )
 
+from src.readout import (
+    GraphReadout,
+)
+
 
 # ============================================================
 # Output utility
@@ -86,10 +90,16 @@ def main() -> None:
 
     parser = argparse.ArgumentParser(
         description=(
-            "Test molecular preprocessing, feature encoding, "
-            "and MPNN pipeline."
+            "Test molecular preprocessing, "
+            "feature encoding, MPNN, "
+            "and graph readout pipeline."
         )
     )
+
+
+    # --------------------------------------------------------
+    # SMILES
+    # --------------------------------------------------------
 
     parser.add_argument(
         "--smiles",
@@ -101,6 +111,11 @@ def main() -> None:
         ),
     )
 
+
+    # --------------------------------------------------------
+    # Embedding dimension
+    # --------------------------------------------------------
+
     parser.add_argument(
         "--embed-dim",
         type=int,
@@ -111,6 +126,11 @@ def main() -> None:
         ),
     )
 
+
+    # --------------------------------------------------------
+    # Explicit hydrogen
+    # --------------------------------------------------------
+
     parser.add_argument(
         "--explicit-h",
         action="store_true",
@@ -119,6 +139,7 @@ def main() -> None:
             "into explicit atom nodes."
         ),
     )
+
 
     # --------------------------------------------------------
     # Atom indices to inspect
@@ -135,6 +156,7 @@ def main() -> None:
         ),
     )
 
+
     # --------------------------------------------------------
     # Directed edge indices to inspect
     # --------------------------------------------------------
@@ -149,6 +171,7 @@ def main() -> None:
             "Example: --edge-index 0 2 4"
         ),
     )
+
 
     # --------------------------------------------------------
     # MPNN configuration
@@ -174,6 +197,29 @@ def main() -> None:
         ),
     )
 
+
+    # --------------------------------------------------------
+    # Readout / Pooling configuration
+    # --------------------------------------------------------
+
+    parser.add_argument(
+        "--readout",
+        type=str,
+        choices=[
+            "mean",
+            "sum",
+            "max",
+            "none",
+        ],
+        default="mean",
+        help=(
+            "Graph readout method. "
+            "Choices: mean, sum, max, none. "
+            "Default: mean"
+        ),
+    )
+
+
     args = parser.parse_args()
 
     smiles = args.smiles
@@ -189,9 +235,11 @@ def main() -> None:
         explicit_h=args.explicit_h,
     )
 
+
     print_separator(
         "1. SMILES -> MOLECULAR GRAPH"
     )
+
 
     print_graph_summary(
         smiles,
@@ -211,6 +259,11 @@ def main() -> None:
     bond_encoder = BondFeatureEncoder(
         embed_dim=embed_dim,
     )
+
+
+    # --------------------------------------------------------
+    # Raw categorical features -> latent representations
+    # --------------------------------------------------------
 
     H_atom = atom_encoder(
         data.x
@@ -234,7 +287,9 @@ def main() -> None:
         "\n=== H_atom: encoded atom feature matrix ==="
     )
 
-    print(H_atom)
+    print(
+        H_atom
+    )
 
     print(
         "shape:",
@@ -250,7 +305,9 @@ def main() -> None:
         "\n=== H_edge: encoded bond feature matrix ==="
     )
 
-    print(H_edge)
+    print(
+        H_edge
+    )
 
     print(
         "shape:",
@@ -271,6 +328,7 @@ def main() -> None:
         f"0 ~ {H_atom.size(0) - 1}"
     )
 
+
     if H_edge.size(0) > 0:
 
         print(
@@ -286,7 +344,7 @@ def main() -> None:
 
 
     # ========================================================
-    # Validate requested atom indices
+    # Validate atom indices
     # ========================================================
 
     validate_indices(
@@ -319,20 +377,26 @@ def main() -> None:
             atom.GetSymbol()
         )
 
+
         print(
             "\nraw feature:"
         )
 
         print(
-            data.x[atom_idx]
+            data.x[
+                atom_idx
+            ]
         )
+
 
         print(
             "\nencoded feature:"
         )
 
         print(
-            H_atom[atom_idx]
+            H_atom[
+                atom_idx
+            ]
         )
 
 
@@ -347,6 +411,7 @@ def main() -> None:
             H_edge.size(0),
             "Edge",
         )
+
 
         for edge_idx in args.edge_index:
 
@@ -366,20 +431,27 @@ def main() -> None:
                 .item()
             )
 
+
             src_symbol = (
-                mol.GetAtomWithIdx(src)
+                mol.GetAtomWithIdx(
+                    src
+                )
                 .GetSymbol()
             )
 
             dst_symbol = (
-                mol.GetAtomWithIdx(dst)
+                mol.GetAtomWithIdx(
+                    dst
+                )
                 .GetSymbol()
             )
+
 
             print(
                 f"\n=== Edge {edge_idx}: "
                 f"feature encoding example ==="
             )
+
 
             print(
                 "connectivity:"
@@ -391,6 +463,7 @@ def main() -> None:
                 f"{dst} ({dst_symbol})"
             )
 
+
             print(
                 "\nraw feature:"
             )
@@ -400,6 +473,7 @@ def main() -> None:
                     edge_idx
                 ]
             )
+
 
             print(
                 "\nencoded feature:"
@@ -421,6 +495,7 @@ def main() -> None:
         num_layers=args.mpnn_layers,
         dropout=args.mpnn_dropout,
     )
+
 
     H_atom_updated, layer_outputs = mpnn(
         H_atom,
@@ -503,7 +578,7 @@ def main() -> None:
 
 
     # ========================================================
-    # Final updated atom feature matrix
+    # Final updated atom representation
     # ========================================================
 
     print(
@@ -531,19 +606,24 @@ def main() -> None:
             atom_idx
         )
 
+
         print(
             f"\n=== Atom {atom_idx} "
             f"({atom.GetSymbol()}): "
             f"MPNN representation trace ==="
         )
 
+
         print(
             "before MPNN:"
         )
 
         print(
-            H_atom[atom_idx]
+            H_atom[
+                atom_idx
+            ]
         )
+
 
         for layer_idx, H_layer in enumerate(
             layer_outputs,
@@ -555,12 +635,105 @@ def main() -> None:
             )
 
             print(
-                H_layer[atom_idx]
+                H_layer[
+                    atom_idx
+                ]
             )
 
 
     # ========================================================
-    # 4. Pipeline sanity check
+    # 4. Readout / Pooling
+    # ========================================================
+
+    print_separator(
+        "4. READOUT / POOLING"
+    )
+
+
+    # ========================================================
+    # Readout configuration
+    # ========================================================
+
+    print(
+        "\n=== Readout configuration ==="
+    )
+
+    print(
+        "mode:",
+        args.readout,
+    )
+
+
+    # ========================================================
+    # Readout input
+    # ========================================================
+
+    print(
+        "\n=== Readout input ==="
+    )
+
+    print(
+        "H_atom_updated shape:",
+        tuple(
+            H_atom_updated.shape
+        ),
+    )
+
+
+    # ========================================================
+    # Execute Readout
+    # ========================================================
+
+    if args.readout != "none":
+
+        readout = GraphReadout(
+            mode=args.readout,
+        )
+
+
+        H_mol = readout(
+            H_atom_updated,
+        )
+
+
+        print(
+            "\n=== H_mol: molecule latent ==="
+        )
+
+        print(
+            H_mol
+        )
+
+        print(
+            "shape:",
+            tuple(H_mol.shape),
+        )
+
+
+    else:
+
+        H_mol = None
+
+
+        print(
+            "\n=== Readout skipped ==="
+        )
+
+        print(
+            "H_atom_updated remains "
+            "the final encoder output."
+        )
+
+        print(
+            "shape:",
+            tuple(
+                H_atom_updated.shape
+            ),
+        )
+
+
+    # ========================================================
+    # 5. Pipeline sanity check
     # ========================================================
 
     assert H_atom.shape == (
@@ -568,10 +741,12 @@ def main() -> None:
         embed_dim,
     )
 
+
     assert H_edge.shape == (
         data.edge_attr.shape[0],
         embed_dim,
     )
+
 
     assert (
         data.edge_index.shape[1]
@@ -579,10 +754,12 @@ def main() -> None:
         H_edge.shape[0]
     )
 
+
     assert H_atom_updated.shape == (
         data.x.shape[0],
         embed_dim,
     )
+
 
     assert (
         len(layer_outputs)
@@ -591,24 +768,42 @@ def main() -> None:
     )
 
 
+    if H_mol is not None:
+
+        assert H_mol.shape == (
+            1,
+            embed_dim,
+        )
+
+
     print_separator(
-        "4. PIPELINE CHECK"
+        "5. PIPELINE CHECK"
     )
+
+
+    print(
+        "[PASS] "
+        "SMILES -> Molecular Graph"
+    )
+
 
     print(
         "[PASS] "
         "x -> AtomFeatureEncoder -> H_atom"
     )
 
+
     print(
         "[PASS] "
         "edge_attr -> BondFeatureEncoder -> H_edge"
     )
 
+
     print(
         "[PASS] "
         "edge_index columns == H_edge rows"
     )
+
 
     print(
         "[PASS] "
@@ -616,40 +811,94 @@ def main() -> None:
         "-> MPNN -> H_atom_updated"
     )
 
+
     print(
         "[PASS] "
         f"MPNN layer count == {args.mpnn_layers}"
     )
 
 
+    if H_mol is not None:
+
+        print(
+            "[PASS] "
+            "H_atom_updated "
+            f"-> {args.readout} Readout "
+            "-> H_mol"
+        )
+
+    else:
+
+        print(
+            "[PASS] "
+            "Readout skipped; "
+            "atom-level representation preserved"
+        )
+
+
     # ========================================================
-    # 5. Next Readout / Pooling interface
+    # 6. Next Task Head interface
     # ========================================================
 
     print_separator(
-        "5. NEXT STEP: READOUT / POOLING INPUT"
+        "6. NEXT STEP: TASK HEAD INPUT"
     )
 
 
-    print(
-        "\n=== H_atom_updated ==="
-    )
+    # --------------------------------------------------------
+    # Molecule-level representation
+    # --------------------------------------------------------
 
-    print(
-        "shape:",
-        tuple(H_atom_updated.shape),
-    )
+    if H_mol is not None:
+
+        print(
+            "\n=== H_mol ==="
+        )
+
+        print(
+            "shape:",
+            tuple(H_mol.shape),
+        )
 
 
-    print(
-        "\n=== Next pipeline ==="
-    )
+        print(
+            "\n=== Next pipeline ==="
+        )
 
-    print(
-        "H_atom_updated"
-        " -> Readout / Pooling"
-        " -> Molecule Latent"
-    )
+        print(
+            "H_mol"
+            " -> Task Head"
+            " -> Molecular Property"
+        )
+
+
+    # --------------------------------------------------------
+    # Atom-level representation
+    # --------------------------------------------------------
+
+    else:
+
+        print(
+            "\n=== H_atom_updated ==="
+        )
+
+        print(
+            "shape:",
+            tuple(
+                H_atom_updated.shape
+            ),
+        )
+
+
+        print(
+            "\n=== Next pipeline ==="
+        )
+
+        print(
+            "H_atom_updated"
+            " -> Atom / Interaction-level "
+            "Downstream Module"
+        )
 
 
 if __name__ == "__main__":
