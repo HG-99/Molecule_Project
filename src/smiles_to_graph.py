@@ -95,7 +95,7 @@ def bond_features(bond: Chem.rdchem.Bond) -> list[int]:
     ]
 
 
-def smiles_to_pyg(smiles: str, explicit_h: bool = True) -> tuple[Chem.Mol, Data]:
+def smiles_to_pyg(smiles: str, explicit_h: bool = False) -> tuple[Chem.Mol, Data]:
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         raise ValueError(f"RDKit could not parse SMILES: {smiles!r}")
