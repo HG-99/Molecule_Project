@@ -1,0 +1,5 @@
+
+# QM9 raw dataset
+dataset/qm9/raw/*.sdf
+dataset/qm9/raw/*.csv
+dataset/qm9/raw/uncharacterized.txt
