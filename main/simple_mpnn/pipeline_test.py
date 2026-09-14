@@ -14,7 +14,7 @@ from pathlib import Path
 PROJECT_ROOT = (
     Path(__file__)
     .resolve()
-    .parents[1]
+    .parents[2]
 )
 
 if str(PROJECT_ROOT) not in sys.path:
@@ -28,21 +28,21 @@ if str(PROJECT_ROOT) not in sys.path:
 # Import current modules
 # ============================================================
 
-from src.smiles_to_graph import (
+from src.simple_mpnn.smiles_to_graph import (
     smiles_to_pyg,
     print_graph_summary,
 )
 
-from src.feature_encoder import (
+from src.simple_mpnn.feature_encoder import (
     AtomFeatureEncoder,
     BondFeatureEncoder,
 )
 
-from src.mpnn import (
+from src.simple_mpnn.mpnn import (
     SimpleMPNN,
 )
 
-from src.readout import (
+from src.simple_mpnn.readout import (
     GraphReadout,
 )
 

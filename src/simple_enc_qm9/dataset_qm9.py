@@ -25,7 +25,7 @@ The raw QM9 files are kept under:
 
 Run:
 
-    python -m src.dataset_qm9 --inspect-raw
+    python -m src.simple_enc_qm9.dataset_qm9 --inspect-raw
 
 to download and inspect the original files.
 """
@@ -44,7 +44,7 @@ from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from torch_geometric.data import download_url, extract_zip
 
-from src.smiles_to_graph import atom_features, bond_features
+from src.simple_mpnn.smiles_to_graph import atom_features, bond_features
 
 
 # ============================================================

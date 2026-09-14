@@ -5,16 +5,16 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 
-from src.feature_encoder import (
+from .feature_encoder import (
     AtomFeatureEncoder,
     BondFeatureEncoder,
 )
 
-from src.mpnn import (
+from .mpnn import (
     SimpleMPNN,
 )
 
-from src.readout import (
+from .readout import (
     GraphReadout,
 )
 

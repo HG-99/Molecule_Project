@@ -23,7 +23,7 @@ from torch_geometric.loader import DataLoader
 PROJECT_ROOT = (
     Path(__file__)
     .resolve()
-    .parents[1]
+    .parents[2]
 )
 
 if str(PROJECT_ROOT) not in sys.path:
@@ -37,9 +37,9 @@ if str(PROJECT_ROOT) not in sys.path:
 # Import project modules
 # ============================================================
 
-from src.dataset import ESOLDataset
-from src.molecule_encoder import MoleculeEncoder
-from src.task_head import RegressionHead
+from src.simple_mpnn.dataset_esol import ESOLDataset
+from src.simple_mpnn.molecule_encoder import MoleculeEncoder
+from src.simple_mpnn.task_head import RegressionHead
 
 
 # ============================================================

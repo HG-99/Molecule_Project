@@ -8,7 +8,7 @@ import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from src.smiles_to_graph import smiles_to_pyg
+from .smiles_to_graph import smiles_to_pyg
 
 
 # ============================================================
